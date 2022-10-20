@@ -1,0 +1,65 @@
+package one.digitalInnovation.gof.service.imple;
+
+import one.digitalInnovation.gof.controller.ClienteRestController;
+import one.digitalInnovation.gof.model.Cliente;
+import one.digitalInnovation.gof.model.ClienteRepository;
+import one.digitalInnovation.gof.model.Endereco;
+import one.digitalInnovation.gof.model.EnderecoRepository;
+import one.digitalInnovation.gof.service.ClienteService;
+import one.digitalInnovation.gof.service.ViaCepService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.Optional;
+
+@Service
+public class ClienteServiceImpl implements ClienteService {
+
+    @Autowired
+    private ClienteRepository clienteRepository;
+
+    @Autowired
+    private EnderecoRepository enderecoRepository;
+
+    @Autowired
+    private ViaCepService viaCepService;
+
+    @Override
+    public Iterable<Cliente> buscarTodos() {
+        return clienteRepository.findAll();
+    }
+
+    @Override
+    public Cliente buscarPorId(Long id) {
+        Optional<Cliente> cliente = clienteRepository.findById(id);
+        return cliente.get();
+    }
+
+    @Override
+    public void inserir(Cliente cliente) {
+        salvarComClienteComCep(cliente);
+    }
+
+    @Override
+    public void atualizar(Long id, Cliente cliente) {
+        Optional<Cliente> clienteBd = clienteRepository.findById(id);
+        if(clienteBd.isPresent()) {
+            salvarComClienteComCep(cliente);
+        }
+    }
+
+    @Override
+    public void deletar(Long id) {
+        clienteRepository.deleteById(id);
+    }
+
+    private void salvarComClienteComCep(Cliente cliente) {
+        String cep = cliente.getEndereco().getCep();
+        Endereco endereco = enderecoRepository.findById(cep).orElseGet(() -> {
+            Endereco novoEndereco = viaCepService.consultarCep(cep);
+            return novoEndereco;
+        });
+        cliente.setEndereco(endereco);
+        clienteRepository.save(cliente);
+    }
+}
